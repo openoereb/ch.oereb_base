@@ -6,7 +6,7 @@ model="PLZOCH1LV95D"
 dataset="PLZO_INTERLIS_LV95"
 FILE_NAME="PLZO_ITF_LV95"
 
-unzip -o ./"$FILE_NAME".zip '*.itf' -d ./
+unzip -o ./"$dataset".zip '*.itf' -d ./
 
 java -jar "$ili2pg_executable" \
   --import \
@@ -20,4 +20,4 @@ java -jar "$ili2pg_executable" \
   --disableValidation \
   --models "$model" \
   --verbose \
-  "$FILE_NAME".itf
+  ./"$dataset"/"$FILE_NAME".itf
