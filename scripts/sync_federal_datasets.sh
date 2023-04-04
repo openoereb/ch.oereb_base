@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 federal_themes=(\
-    "ch.astra.projektierungszonen-nationalstrassen_v2_0.oereb" \
+    # "ch.astra.projektierungszonen-nationalstrassen_v2_0.oereb" \
     "ch.astra.baulinien-nationalstrassen_v2_0.oereb" \
     "ch.bav.projektierungszonen-eisenbahnanlagen_v2_0.oereb" \
     "ch.bav.baulinien-eisenbahnanlagen_v2_0.oereb" \
