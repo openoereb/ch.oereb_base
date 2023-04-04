@@ -1,0 +1,126 @@
+name: 'Sync federal basic data'
+
+on:
+  schedule:
+    # this is in UTC so it means every day at 3 AM this trigger is pulled
+    - cron: 0 1 * * *
+  workflow_dispatch:
+    inputs:
+      force_build:
+        description: "should a new version be forced (0=NO, 1=YES)"
+        required: true
+        default: "0"
+    
+jobs:
+  synchronize_upstream_federal_data:
+    environment: sync
+    name: 'Sync federal basic data'
+    runs-on: ubuntu-latest
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+    env:
+      OEREBKRM_DOWNLOAD_URL: https://models.geo.admin.ch/V_D/OeREB
+      OEREBKRM_LAWS_FILE_NAME: OeREBKRM_V2_0_Gesetze.xml
+      OEREBKRM_THEMES_FILE_NAME: OeREBKRM_V2_0_Themen.xml
+      OEREBKRM_LOGOS_FILE_NAME: OeREBKRM_V2_0_Logos.xml
+      OEREBKRM_TEXTS_FILE_NAME: OeREBKRM_V2_0_Texte.xml
+      PLZO_DOWNLOAD_URL: https://data.geo.admin.ch/ch.swisstopo-vd.ortschaftenverzeichnis_plz
+      PLZO_FILE_NAME: PLZO_INTERLIS_LV95
+      PLZO_FILE_EXTENSION: zip
+
+      REGISTRY_URL: ghcr.io/${{ github.repository }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+      PG_READ_PWD: ${{ secrets.PG_READ_PWD }}
+      PG_WRITE_PWD: ${{ secrets.PG_WRITE_PWD }}
+      PG_GRETL_PWD: ${{ secrets.PG_GRETL_PWD }}
+      FORCE_BUILD: ${{ inputs.force_build }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+
+
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Login to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.PERSONAL_TOKEN }}
+    - name: Setup Git
+      run: |
+        git config --global user.email "${{ secrets.GIT_EMAIL }}"
+        git config --global user.name "${{ secrets.GIT_NAME }}"
+    - name: Prepare release check
+      run: |
+        echo "0" > /tmp/release
+
+    - name: Download Federal Laws catalogue
+      run: |
+        curl -X GET -o ./$OEREBKRM_LAWS_FILE_NAME $OEREBKRM_DOWNLOAD_URL/$OEREBKRM_LAWS_FILE_NAME
+    - name: Handle changes of Federal Laws catalogue
+      env:
+        UPSTREAM_URL: $OEREBKRM_DOWNLOAD_URL/$OEREBKRM_LAWS_FILE_NAME
+      run: |
+        git add $OEREBKRM_LAWS_FILE_NAME
+        ./scripts/commit_push_if_dirty.sh
+
+    - name: Download Federal Themes catalogue
+      run: |
+        curl -X GET -o ./$OEREBKRM_THEMES_FILE_NAME $OEREBKRM_DOWNLOAD_URL/$OEREBKRM_THEMES_FILE_NAME
+    - name: Handle changes of Federal Themes catalogue
+      env:
+        UPSTREAM_URL: $OEREBKRM_DOWNLOAD_URL/$OEREBKRM_THEMES_FILE_NAME
+      run: |
+        git add $OEREBKRM_THEMES_FILE_NAME
+        ./scripts/commit_push_if_dirty.sh
+
+    - name: Download Federal Logos catalogue
+      run: |
+        curl -X GET -o ./$OEREBKRM_LOGOS_FILE_NAME $OEREBKRM_DOWNLOAD_URL/$OEREBKRM_LOGOS_FILE_NAME
+    - name: Handle changes of Federal Logos catalogue
+      env:
+        UPSTREAM_URL: $OEREBKRM_DOWNLOAD_URL/$OEREBKRM_LOGOS_FILE_NAME
+      run: |
+        git add $OEREBKRM_LOGOS_FILE_NAME
+        ./scripts/commit_push_if_dirty.sh
+
+    - name: Download Federal Texts catalogue
+      run: |
+        curl -X GET -o ./$OEREBKRM_TEXTS_FILE_NAME $OEREBKRM_DOWNLOAD_URL/$OEREBKRM_TEXTS_FILE_NAME
+    - name: Handle changes of Federal Texts catalogue
+      env:
+        UPSTREAM_URL: $OEREBKRM_DOWNLOAD_URL/$OEREBKRM_TEXTS_FILE_NAME
+      run: |
+        git add $OEREBKRM_TEXTS_FILE_NAME
+        ./scripts/commit_push_if_dirty.sh
+
+    - name: Download and unzip PLZO data
+      run: |
+        curl -X GET -o ./$PLZO_FILE_NAME.$PLZO_FILE_EXTENSION $PLZO_DOWNLOAD_URL/$PLZO_FILE_NAME.$PLZO_FILE_EXTENSION
+        ls -ls ./$PLZO_FILE_NAME.$PLZO_FILE_EXTENSION
+    - name: Handle changes of PLZO data
+      env:
+        UPSTREAM_URL: $PLZO_DOWNLOAD_URL/$PLZO_FILE_NAME.$PLZO_FILE_EXTENSION
+      run: |
+        git add $PLZO_FILE_NAME.$PLZO_FILE_EXTENSION
+        ./scripts/commit_push_if_dirty.sh
+
+    - name: Download and unzip Federal Theme data and handle diff check
+      env:
+        FEDERAL_THEMES_DOWNLOAD_URL: "https://data.geo.admin.ch"
+      run: |
+        ./scripts/sync_federal_datasets.sh
+
+    - name: Draft daily release
+      env:
+        GH_TOKEN: ${{ secrets.PERSONAL_TOKEN }}
+      run: |
+        TAG=$(date +'%Y%m%d.%H%M.%S')-$(git rev-parse --short master)
+        if [ $(cat /tmp/release) == "1" ] || [ "${{ inputs.force_build }}" == "1" ]; then echo "draft release" && gh release create $TAG; else echo "no release draft"; fi
+        
