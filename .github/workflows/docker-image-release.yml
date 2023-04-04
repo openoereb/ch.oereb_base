@@ -40,7 +40,7 @@ jobs:
 
       - name: Start database structure
         run: |
-          ./start_target_db.sh
+          ./scripts/start_target_db.sh
       - name: Insert PLZO data
         run: |
           ./scripts/insert_plzo_data.sh
@@ -57,7 +57,7 @@ jobs:
 
       - name: Shut down DB container
         run: |
-          docker container stop $CONTAINERNAME
+          ./scripts/stop_target_db.sh
 
       - name: Build Image
         run: |
