@@ -61,7 +61,8 @@ jobs:
 
       - name: Build Image
         run: |
-          docker commit $CONTAINERNAME ghcr.io/${{ github.repository }}:latest
+          docker commit $CONTAINERNAME ghcr.io/${{ github.repository }}:intermediate
+          docker build -t ghcr.io/${{ github.repository }}:latest .
           docker tag ghcr.io/${{ github.repository }}:latest ghcr.io/${{ github.repository }}:${{ github.ref_name }}
       - name: Push image tags
         run: |
