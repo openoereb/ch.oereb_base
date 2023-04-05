@@ -72,5 +72,5 @@ jobs:
           curl -H "Accept: application/vnd.github.everest-preview+json" \
           -H "Authorization: token ${{ secrets.PERSONAL_TOKEN }}" \
           --request POST \
-          --data '{"event_type": "base_image_was_updated", "client_payload": {'build': "true"}}' \
+          --data '{"event_type": "base_image_was_updated", "client_payload": {"build": "true"}}' \
           https://api.github.com/repos/openoereb/ch.sh.oereb_base/dispatches
