@@ -1,4 +1,4 @@
-FROM ghcr.io/ch.oereb_base:temp as base
+FROM ghcr.io/openoereb/ch.oereb_base:temp as base
 
 FROM postgis/postgis:14-3.3-alpine
 
