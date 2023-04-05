@@ -67,7 +67,6 @@ jobs:
         run: |
           docker push ghcr.io/${{ github.repository }}:latest
           docker push ghcr.io/${{ github.repository }}:${{ github.ref_name }}
-            - name: Acknowledge parent repository about new base image
       - name: Acknowledge parent repository about new base image
         run: |
           curl -H "Accept: application/vnd.github.everest-preview+json" \
